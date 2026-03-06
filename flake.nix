@@ -12,9 +12,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, fenix, substrate }:
+  outputs = { self, nixpkgs, fenix, substrate, devenv }:
   let
     allSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
@@ -34,6 +38,19 @@
       default = pkgs.zls;
       zig = pkgs.zigToolchain;
       zls = pkgs.zls;
+    });
+
+    # ── Dev shells ─────────────────────────────────────────────────
+    devShells = forEachSystem ({ pkgs, ... }: {
+      default = devenv.lib.mkShell {
+        inputs = { inherit nixpkgs devenv; };
+        inherit pkgs;
+        modules = [{
+          languages.nix.enable = true;
+          packages = with pkgs; [ nixpkgs-fmt nil ];
+          git-hooks.hooks.nixpkgs-fmt.enable = true;
+        }];
+      };
     });
 
     # ── Lib exports (standalone import paths) ───────────────────────
